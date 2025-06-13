@@ -9,7 +9,7 @@ export async function POST(req: Request) {
   try {
     const token = await Token.create({ name, email });
     return NextResponse.json(token);
-  } catch (err) {
-    return NextResponse.json({ error: 'Email already exists' }, { status: 400 });
+  } catch  {
+    
   }
 }

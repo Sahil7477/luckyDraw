@@ -7,9 +7,14 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Gift, Sparkles, Users } from 'lucide-react';
 
+type Winner = {
+  name: string;
+  email: string;
+};
+
 export default function Home() {
   const [form, setForm] = useState({ name: '', email: '' });
-  const [winner, setWinner] = useState<any>(null);
+ const [winner, setWinner] = useState<Winner | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
 
