@@ -1,18 +1,13 @@
 import mongoose from 'mongoose';
 
-type MongooseCache = {
-  conn: typeof mongoose | null;
-  promise: Promise<typeof mongoose> | null;
-};
+declare global {
+  var mongooseConn: {
+    conn: typeof mongoose | null;
+    promise: Promise<typeof mongoose> | null;
+  } | undefined;
+}
 
-const globalWithMongoose = global as typeof globalThis & {
-  mongoose: MongooseCache;
-};
-
-const cached: MongooseCache = globalWithMongoose.mongoose ?? {
-  conn: null,
-  promise: null,
-};
+let cached = global.mongooseConn || { conn: null, promise: null };
 
 export async function connectDB() {
   if (cached.conn) return cached.conn;
@@ -25,7 +20,6 @@ export async function connectDB() {
   }
 
   cached.conn = await cached.promise;
-  globalWithMongoose.mongoose = cached;
-
+  global.mongooseConn = cached;
   return cached.conn;
 }

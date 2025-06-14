@@ -1,39 +1,41 @@
-
-'use client';
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Trophy, Gift, Sparkles, Users } from 'lucide-react';
+"use client";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Trophy, Gift, Sparkles, Users } from "lucide-react";
 
 type Winner = {
-  name: string;
-  email: string;
+  mobile: string;
+  isWinner: boolean;
+  createdAt?: string;
 };
 
 export default function Home() {
-  const [form, setForm] = useState({ name: '', email: '' });
- const [winner, setWinner] = useState<Winner | null>(null);
+  const [form, setForm] = useState({ mobile: "" });
+  const [winner, setWinner] = useState<Winner | null>(null);
+  const [submittedMobile, setSubmittedMobile] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
 
   const submit = async () => {
-    if (!form.name || !form.email) return;
-    
+    if (!form.mobile) return;
+
     setIsSubmitting(true);
     try {
-      const res = await fetch('/api/token', {
-        method: 'POST',
-        body: JSON.stringify(form),
-        headers: { 'Content-Type': 'application/json' }
+      const res = await fetch("/api/token", {
+        method: "POST",
+        body: JSON.stringify({ mobile: form.mobile }),
+        headers: { "Content-Type": "application/json" },
       });
 
       if (res.ok) {
-        alert('Token submitted!');
-        setForm({ name: '', email: '' });
+        alert("Token submitted!");
+        setSubmittedMobile(form.mobile); // Save last entered number
+        setForm({ mobile: "" });
       } else {
-        alert('Email already registered.');
+        alert("Mobile number already registered.");
       }
     } finally {
       setIsSubmitting(false);
@@ -43,7 +45,7 @@ export default function Home() {
   const draw = async () => {
     setIsDrawing(true);
     try {
-      const res = await fetch('/api/draw', { method: 'POST' });
+      const res = await fetch("/api/draw", { method: "POST" });
       const data = await res.json();
       setWinner(data);
     } finally {
@@ -53,13 +55,20 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-100 via-blue-50 to-indigo-100">
-      {/* Background decoration */}
+      {/* Background Effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-4 -left-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-        <div className="absolute -bottom-8 -right-4 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div
+          className="absolute -bottom-8 -right-4 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"
+          style={{ animationDelay: "1s" }}
+        ></div>
+        <div
+          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"
+          style={{ animationDelay: "2s" }}
+        ></div>
       </div>
 
+      {/* Main Content */}
       <div className="relative min-h-screen flex flex-col items-center justify-center gap-8 p-4">
         {/* Header */}
         <div className="text-center mb-4 animate-fade-in">
@@ -71,41 +80,30 @@ export default function Home() {
             <Sparkles className="h-8 w-8 text-yellow-500 animate-pulse" />
           </div>
           <p className="text-xl text-muted-foreground max-w-2xl">
-            Enter your details for a chance to win amazing prizes!
+            Enter your mobile number for a chance to win amazing prizes!
           </p>
         </div>
 
+        {/* Form & Button */}
         <div className="w-full max-w-md space-y-6">
-          {/* Registration Form */}
           <Card className="p-6 bg-white/80 backdrop-blur-sm border-2 border-purple-200 shadow-xl animate-scale-in">
             <div className="flex items-center gap-2 mb-4">
               <Users className="h-5 w-5 text-purple-600" />
-              <h2 className="text-lg font-semibold text-foreground">Join the Draw</h2>
+              <h2 className="text-lg font-semibold text-foreground">
+                Join the Draw
+              </h2>
             </div>
-            
+
             <div className="space-y-4">
-              <div>
-                <Input
-                  placeholder="Enter your name"
-                  value={form.name}
-                  onChange={e => setForm({ ...form, name: e.target.value })}
-                  className="border-purple-200 focus:border-purple-400 focus:ring-purple-400"
-                />
-              </div>
-              
-              <div>
-                <Input
-                  type="email"
-                  placeholder="Enter your email"
-                  value={form.email}
-                  onChange={e => setForm({ ...form, email: e.target.value })}
-                  className="border-purple-200 focus:border-purple-400 focus:ring-purple-400"
-                />
-              </div>
-              
+              <Input
+                placeholder="Enter your mobile number"
+                value={form.mobile}
+                onChange={(e) => setForm({ mobile: e.target.value })}
+              />
+
               <Button
                 onClick={submit}
-                disabled={isSubmitting || !form.name || !form.email}
+                disabled={isSubmitting || !form.mobile}
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 rounded-lg transform transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
                 {isSubmitting ? (
@@ -123,7 +121,6 @@ export default function Home() {
             </div>
           </Card>
 
-          {/* Draw Button */}
           <div className="text-center">
             <Button
               onClick={draw}
@@ -146,24 +143,42 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Winner Display */}
+        {/* Winner Card */}
         {winner && (
           <Card className="p-6 bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 shadow-xl animate-fade-in max-w-md w-full">
             <div className="text-center">
               <div className="flex items-center justify-center gap-2 mb-4">
                 <Trophy className="h-8 w-8 text-yellow-500" />
-                <h2 className="text-2xl font-bold text-yellow-700">🎉 We have a Winner! 🎉</h2>
+                <h2 className="text-2xl font-bold text-yellow-700">
+                  🎉 We have a Winner! 🎉
+                </h2>
                 <Trophy className="h-8 w-8 text-yellow-500" />
               </div>
-              
-              <div className="bg-white/80 rounded-lg p-4 border border-yellow-200">
-                <Badge variant="secondary" className="mb-2 bg-yellow-100 text-yellow-800 border-yellow-300">
-                  WINNER
-                </Badge>
-                <p className="text-xl font-bold text-gray-800">{winner.name}</p>
-                <p className="text-gray-600">{winner.email}</p>
+
+              <div className="bg-white/80 rounded-lg p-4 border border-yellow-200 space-y-2">
+                <div>
+                  <Badge
+                    variant="secondary"
+                    className="mb-2 bg-yellow-100 text-yellow-800 border-yellow-300"
+                  >
+                    WINNER
+                  </Badge>
+                  <p className="text-xl font-bold text-gray-800">{winner.mobile}</p>
+                </div>
+
+                {submittedMobile && (
+                  <div>
+                    <Badge
+                      variant="secondary"
+                      className="mb-2 bg-blue-100 text-blue-800 border-blue-300"
+                    >
+                      YOUR ENTRY
+                    </Badge>
+                    <p className="text-lg text-gray-700">{submittedMobile}</p>
+                  </div>
+                )}
               </div>
-              
+
               <div className="mt-4 flex justify-center">
                 {[...Array(6)].map((_, i) => (
                   <span
@@ -178,29 +193,6 @@ export default function Home() {
             </div>
           </Card>
         )}
-
-        {/* Features */}
-        <div className="max-w-3xl mx-auto mt-8">
-          <div className="grid md:grid-cols-3 gap-4">
-            <Card className="p-4 bg-white/60 backdrop-blur-sm border border-purple-200 text-center hover:shadow-lg transition-shadow">
-              <Gift className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-              <h3 className="font-semibold mb-1">Amazing Prizes</h3>
-              <p className="text-sm text-muted-foreground">Win incredible rewards</p>
-            </Card>
-            
-            <Card className="p-4 bg-white/60 backdrop-blur-sm border border-blue-200 text-center hover:shadow-lg transition-shadow">
-              <Users className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-              <h3 className="font-semibold mb-1">Fair Drawing</h3>
-              <p className="text-sm text-muted-foreground">Everyone has equal chances</p>
-            </Card>
-            
-            <Card className="p-4 bg-white/60 backdrop-blur-sm border border-green-200 text-center hover:shadow-lg transition-shadow">
-              <Trophy className="h-8 w-8 text-green-600 mx-auto mb-2" />
-              <h3 className="font-semibold mb-1">Instant Results</h3>
-              <p className="text-sm text-muted-foreground">Know the winner immediately</p>
-            </Card>
-          </div>
-        </div>
       </div>
     </div>
   );

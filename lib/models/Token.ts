@@ -1,10 +1,10 @@
+// lib/models/Token.ts
 import { Schema, model, models } from 'mongoose';
 
 const TokenSchema = new Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  isWinner: { type: Boolean, default: false },
+  mobile: { type: String, required: true, unique: true },
+  isWinner: { type: Boolean, default: true }, // by default, admin entries = winners
   createdAt: { type: Date, default: Date.now },
 });
 
-export const Token = models.Token || model('Token', TokenSchema);
+export default models.Token || model('Token', TokenSchema);
