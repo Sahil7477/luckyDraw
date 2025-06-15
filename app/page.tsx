@@ -1,199 +1,321 @@
-"use client";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Trophy, Gift, Sparkles, Users } from "lucide-react";
+"use client"
 
-type Winner = {
-  mobile: string;
-  isWinner: boolean;
-  createdAt?: string;
-};
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Separator } from "@/components/ui/separator"
+import { Trophy, Users, ShieldCheck, ArrowLeft, Loader2, CheckCircle, XCircle } from "lucide-react"
 
-export default function Home() {
-  const [form, setForm] = useState({ mobile: "" });
-  const [winner, setWinner] = useState<Winner | null>(null);
-  const [submittedMobile, setSubmittedMobile] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDrawing, setIsDrawing] = useState(false);
+// Types
+interface Winner {
+  mobile: string
+}
 
-  const submit = async () => {
-    if (!form.mobile) return;
+interface LoginCredentials {
+  username: string
+  password: string
+}
 
-    setIsSubmitting(true);
+interface ApiResponse {
+  success?: boolean
+  error?: string
+  status?: string
+  mobile?: string
+  winners?: string[]
+}
+
+type AppMode = "switch" | "admin-login" | "admin" | "participant"
+
+// Constants
+const ADMIN_USERNAME = "admin"
+const ADMIN_PASSWORD = "password123"
+
+export default function LotterySystem() {
+  const [mode, setMode] = useState<AppMode>("switch")
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  // Form states
+  const [login, setLogin] = useState<LoginCredentials>({ username: "", password: "" })
+  const [adminMobile, setAdminMobile] = useState("")
+  const [checkMobile, setCheckMobile] = useState("")
+  const [winner, setWinner] = useState<Winner | null>(null)
+  const [winnerList, setWinnerList] = useState<string[]>([])
+  const [message, setMessage] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  // Handle admin login
+  const handleLogin = () => {
+    if (login.username === ADMIN_USERNAME && login.password === ADMIN_PASSWORD) {
+      setIsAuthenticated(true)
+      setMode("admin")
+      setMessage("")
+    } else {
+      setMessage("Invalid credentials")
+    }
+  }
+
+  // Add winner (admin)
+  const addWinner = async () => {
+    if (!adminMobile.trim()) {
+      setMessage("Please enter a mobile number")
+      return
+    }
+
+    setLoading(true)
+    setMessage("")
+
     try {
-      const res = await fetch("/api/token", {
+      const res = await fetch("/api/admin/add-winner", {
         method: "POST",
-        body: JSON.stringify({ mobile: form.mobile }),
+        body: JSON.stringify({ mobile: adminMobile }),
         headers: { "Content-Type": "application/json" },
-      });
+      })
 
-      if (res.ok) {
-        alert("Token submitted!");
-        setSubmittedMobile(form.mobile); // Save last entered number
-        setForm({ mobile: "" });
+      const data: ApiResponse = await res.json()
+
+      if (data.success) {
+        setMessage("Winner added successfully!")
+        setAdminMobile("")
       } else {
-        alert("Mobile number already registered.");
+        setMessage(data.error || "Failed to add winner")
       }
+    } catch (error) {
+      setMessage("Network error occurred")
     } finally {
-      setIsSubmitting(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const draw = async () => {
-    setIsDrawing(true);
-    try {
-      const res = await fetch("/api/draw", { method: "POST" });
-      const data = await res.json();
-      setWinner(data);
-    } finally {
-      setIsDrawing(false);
+  // Participant check
+  const checkStatus = async () => {
+    if (!checkMobile.trim()) {
+      setMessage("Please enter your mobile number")
+      return
     }
-  };
+
+    setLoading(true)
+    setMessage("")
+    setWinner(null)
+    setWinnerList([])
+
+    try {
+      const res = await fetch("/api/participant/check", {
+        method: "POST",
+        body: JSON.stringify({ mobile: checkMobile }),
+        headers: { "Content-Type": "application/json" },
+      })
+
+      const data: ApiResponse = await res.json()
+
+      if (data.status === "winner") {
+        setWinner({ mobile: data.mobile || checkMobile })
+      } else {
+        setWinnerList(data.winners || [])
+      }
+    } catch (error) {
+      setMessage("Network error occurred")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const resetToSwitch = () => {
+    setMode("switch")
+    setMessage("")
+    setWinner(null)
+    setWinnerList([])
+    setLogin({ username: "", password: "" })
+    setAdminMobile("")
+    setCheckMobile("")
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-100 via-blue-50 to-indigo-100">
-      {/* Background Effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-4 -left-4 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-        <div
-          className="absolute -bottom-8 -right-4 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"
-          style={{ animationDelay: "1s" }}
-        ></div>
-        <div
-          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-indigo-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"
-          style={{ animationDelay: "2s" }}
-        ></div>
-      </div>
-
-      {/* Main Content */}
-      <div className="relative min-h-screen flex flex-col items-center justify-center gap-8 p-4">
-        {/* Header */}
-        <div className="text-center mb-4 animate-fade-in">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Sparkles className="h-8 w-8 text-yellow-500 animate-pulse" />
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              🎉 Lucky Draw System
-            </h1>
-            <Sparkles className="h-8 w-8 text-yellow-500 animate-pulse" />
-          </div>
-          <p className="text-xl text-muted-foreground max-w-2xl">
-            Enter your mobile number for a chance to win amazing prizes!
-          </p>
-        </div>
-
-        {/* Form & Button */}
-        <div className="w-full max-w-md space-y-6">
-          <Card className="p-6 bg-white/80 backdrop-blur-sm border-2 border-purple-200 shadow-xl animate-scale-in">
-            <div className="flex items-center gap-2 mb-4">
-              <Users className="h-5 w-5 text-purple-600" />
-              <h2 className="text-lg font-semibold text-foreground">
-                Join the Draw
-              </h2>
-            </div>
-
-            <div className="space-y-4">
-              <Input
-                placeholder="Enter your mobile number"
-                value={form.mobile}
-                onChange={(e) => setForm({ mobile: e.target.value })}
-              />
-
-              <Button
-                onClick={submit}
-                disabled={isSubmitting || !form.mobile}
-                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 rounded-lg transform transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <Gift className="h-4 w-4 mr-2" />
-                    Submit Entry
-                  </>
-                )}
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 p-4 md:p-8">
+      <div className="max-w-2xl mx-auto">
+        {/* Mode Selection */}
+        {mode === "switch" && (
+          <Card className="shadow-lg">
+            <CardHeader className="text-center">
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                Lottery System
+              </CardTitle>
+              <CardDescription>Choose your access level to continue</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button onClick={() => setMode("participant")} className="w-full h-12 text-lg" variant="default">
+                <Users className="mr-2 h-5 w-5" />
+                Participant Access
               </Button>
-            </div>
+              <Button onClick={() => setMode("admin-login")} className="w-full h-12 text-lg" variant="outline">
+                <ShieldCheck className="mr-2 h-5 w-5" />
+                Admin Access
+              </Button>
+            </CardContent>
           </Card>
+        )}
 
-          <div className="text-center">
-            <Button
-              onClick={draw}
-              disabled={isDrawing}
-              size="lg"
-              className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-4 px-8 rounded-full transform transition-all duration-200 hover:scale-110 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            >
-              {isDrawing ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Drawing...
-                </>
-              ) : (
-                <>
-                  <Trophy className="h-5 w-5 mr-2" />
-                  🎯 Draw Winner
-                </>
+        {/* Admin Login */}
+        {mode === "admin-login" && (
+          <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ShieldCheck className="h-6 w-6" />
+                Admin Login
+              </CardTitle>
+              <CardDescription>Enter your credentials to access admin panel</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Input
+                  placeholder="Username"
+                  value={login.username}
+                  onChange={(e) => setLogin({ ...login, username: e.target.value })}
+                />
+                <Input
+                  type="password"
+                  placeholder="Password"
+                  value={login.password}
+                  onChange={(e) => setLogin({ ...login, password: e.target.value })}
+                  onKeyPress={(e) => e.key === "Enter" && handleLogin()}
+                />
+              </div>
+
+              {message && (
+                <Alert variant="destructive">
+                  <XCircle className="h-4 w-4" />
+                  <AlertDescription>{message}</AlertDescription>
+                </Alert>
               )}
-            </Button>
-          </div>
-        </div>
 
-        {/* Winner Card */}
-        {winner && (
-          <Card className="p-6 bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 shadow-xl animate-fade-in max-w-md w-full">
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <Trophy className="h-8 w-8 text-yellow-500" />
-                <h2 className="text-2xl font-bold text-yellow-700">
-                  🎉 We have a Winner! 🎉
-                </h2>
-                <Trophy className="h-8 w-8 text-yellow-500" />
+              <div className="flex gap-2">
+                <Button onClick={handleLogin} className="flex-1">
+                  Login
+                </Button>
+                <Button variant="outline" onClick={resetToSwitch}>
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Admin Panel */}
+        {mode === "admin" && isAuthenticated && (
+          <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ShieldCheck className="h-6 w-6" />
+                Admin Panel
+              </CardTitle>
+              <CardDescription>Add winners to the lottery system</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Winner's mobile number"
+                  value={adminMobile}
+                  onChange={(e) => setAdminMobile(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && addWinner()}
+                />
+                <Button onClick={addWinner} disabled={loading}>
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add Winner"}
+                </Button>
               </div>
 
-              <div className="bg-white/80 rounded-lg p-4 border border-yellow-200 space-y-2">
-                <div>
-                  <Badge
-                    variant="secondary"
-                    className="mb-2 bg-yellow-100 text-yellow-800 border-yellow-300"
-                  >
-                    WINNER
-                  </Badge>
-                  <p className="text-xl font-bold text-gray-800">{winner.mobile}</p>
-                </div>
+              {message && (
+                <Alert variant={message.includes("success") ? "default" : "destructive"}>
+                  {message.includes("success") ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                  <AlertDescription>{message}</AlertDescription>
+                </Alert>
+              )}
 
-                {submittedMobile && (
-                  <div>
-                    <Badge
-                      variant="secondary"
-                      className="mb-2 bg-blue-100 text-blue-800 border-blue-300"
-                    >
-                      YOUR ENTRY
-                    </Badge>
-                    <p className="text-lg text-gray-700">{submittedMobile}</p>
+              <Separator />
+
+              <Button variant="outline" onClick={resetToSwitch} className="w-full">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Main Menu
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Participant Panel */}
+        {mode === "participant" && (
+          <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-6 w-6" />
+                Check Your Status
+              </CardTitle>
+              <CardDescription>Enter your mobile number to see if you're a winner</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Your mobile number"
+                  value={checkMobile}
+                  onChange={(e) => setCheckMobile(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && checkStatus()}
+                />
+                <Button onClick={checkStatus} disabled={loading}>
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Check Status"}
+                </Button>
+              </div>
+
+              {message && (
+                <Alert variant="destructive">
+                  <XCircle className="h-4 w-4" />
+                  <AlertDescription>{message}</AlertDescription>
+                </Alert>
+              )}
+
+              {/* Winner Result */}
+              {winner && (
+                <Alert className="border-green-200 bg-green-50">
+                  <Trophy className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-green-800">
+                    🎉 Congratulations! <strong>{winner.mobile}</strong> - You're a WINNER!
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Non-winner Result */}
+              {!winner && winnerList.length > 0 && (
+                <div className="space-y-3">
+                  <Alert variant="destructive">
+                    <XCircle className="h-4 w-4" />
+                    <AlertDescription>Sorry, you didn't win this time. Better luck next time! 🙁</AlertDescription>
+                  </Alert>
+
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                      <Trophy className="h-4 w-4" />
+                      Current Winners:
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {winnerList.map((mobile, index) => (
+                        <Badge key={index} variant="secondary">
+                          {mobile}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
-              <div className="mt-4 flex justify-center">
-                {[...Array(6)].map((_, i) => (
-                  <span
-                    key={i}
-                    className="text-2xl animate-bounce"
-                    style={{ animationDelay: `${i * 0.1}s` }}
-                  >
-                    🎉
-                  </span>
-                ))}
-              </div>
-            </div>
+              <Separator />
+
+              <Button variant="outline" onClick={resetToSwitch} className="w-full">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Main Menu
+              </Button>
+            </CardContent>
           </Card>
         )}
       </div>
     </div>
-  );
+  )
 }
