@@ -1,40 +1,15 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from 'next/server';
+import { connectDB } from '@/lib/mongodb';
+import Winner from '@/lib/models/Winner';
 
-// In-memory storage for demo purposes
-// This should match the storage used in the admin route
-// In production, use a proper database
-const winners: string[] = []
+export async function POST(req: Request) {
+  await connectDB();
+  const { mobile } = await req.json();
+  if (!mobile) return NextResponse.json({ error: 'Mobile required' }, { status: 400 });
 
-export async function POST(request: NextRequest) {
-  try {
-    const { mobile } = await request.json()
+  const isWinner = await Winner.findOne({ mobile });
+  if (isWinner) return NextResponse.json({ status: 'winner', mobile });
 
-    if (!mobile || typeof mobile !== "string") {
-      return NextResponse.json({ success: false, error: "Mobile number is required" }, { status: 400 })
-    }
-
-    const cleanMobile = mobile.trim()
-
-    // Check if the mobile number is in the winners list
-    const isWinner = winners.includes(cleanMobile)
-
-    if (isWinner) {
-      return NextResponse.json({
-        success: true,
-        status: "winner",
-        mobile: cleanMobile,
-        message: "Congratulations! You are a winner!",
-      })
-    } else {
-      return NextResponse.json({
-        success: true,
-        status: "not-winner",
-        winners: winners, // Return list of winners for display
-        message: "Sorry, you are not a winner this time.",
-      })
-    }
-  } catch (error) {
-    console.error("Error checking participant status:", error)
-    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 })
-  }
+  const list = await Winner.find().select('mobile -_id').sort({ createdAt: -1 });
+  return NextResponse.json({ status: 'not-winner', winners: list.map(w => w.mobile) });
 }
