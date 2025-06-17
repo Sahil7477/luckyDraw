@@ -1,33 +1,28 @@
-import mongoose, { Connection } from 'mongoose';
+import mongoose from 'mongoose';
 
-// Define a proper type for the cached connection
-type CachedConnection = {
-  conn: Connection | null;
-  promise: Promise<Connection> | null;
-};
+const MONGODB_URI = process.env.MONGODB_URI!;
 
-// Use global type augmentation to avoid `any`
-declare global {
-  // eslint-disable-next-line no-var
-  var mongooseConn: CachedConnection | undefined;
+if (!MONGODB_URI) {
+  throw new Error('❌ MONGODB_URI environment variable is not defined');
 }
 
-const cached: CachedConnection = global.mongooseConn ?? {
-  conn: null,
-  promise: null,
-};
+// To prevent multiple connections in development (hot reloads)
+let isConnected = false;
 
-export async function connectDB(): Promise<Connection> {
-  if (cached.conn) return cached.conn;
-
-  if (!cached.promise) {
-    cached.promise = mongoose.connect(process.env.MONGODB_URI!, {
-      dbName: 'luckydraw',
-    }).then(mongooseInstance => mongooseInstance.connection);
+export async function connectDB() {
+  if (isConnected) {
+    return;
   }
 
-  cached.conn = await cached.promise;
-  global.mongooseConn = cached;
+  try {
+    const db = await mongoose.connect(MONGODB_URI, {
+      dbName: 'luckydraw',
+    });
 
-  return cached.conn;
+    isConnected = true;
+    console.log('✅ Mongoose connected to MongoDB!');
+  } catch (error: any) {
+    console.error('❌ Mongoose connection error:', error?.message || error);
+    throw new Error('Failed to connect to MongoDB');
+  }
 }
