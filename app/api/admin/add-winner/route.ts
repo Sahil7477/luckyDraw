@@ -26,6 +26,6 @@ export async function POST(req: Request): Promise<Response> {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Add winner error:", error);
-    return NextResponse.json({ error: "Failed to add winner." }, { status: 500 });
+    return NextResponse.json({ error: "Failed to add winner. Try again." }, { status: 500 });
   }
 }
