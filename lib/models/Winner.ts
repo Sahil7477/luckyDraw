@@ -1,8 +1,9 @@
-import { model, models, Schema } from 'mongoose';
+import mongoose from "mongoose";
 
-const WinnerSchema = new Schema({
+const WinnerSchema = new mongoose.Schema({
   mobile: { type: String, required: true, unique: true },
-  createdAt: { type: Date, default: Date.now },
+  token: { type: String, required: true },
 });
 
-export default models.Winner || model('Winner', WinnerSchema);
+const Winner = mongoose.models.Winner || mongoose.model("Winner", WinnerSchema);
+export default Winner;

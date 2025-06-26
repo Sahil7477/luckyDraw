@@ -1,28 +1,27 @@
-import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
-import { connectDB } from '@/lib/mongodb';
-import Admin from '@/lib/models/Admin';
+import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+import { connectDB } from "@/lib/mongodb";
+import Admin from "@/lib/models/Admin";
 
-export async function POST(req: Request) {
-  try {
-    await connectDB();
-    const { username, password } = await req.json();
+export async function POST(req: NextRequest) {
+  await connectDB();
+  const { username, password, accessCode } = await req.json();
 
-    if (!username || !password) {
-      return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
-    }
-
-    const exists = await Admin.findOne({ username });
-    if (exists) {
-      return NextResponse.json({ error: 'Username already exists' }, { status: 409 });
-    }
-
-    const hash = await bcrypt.hash(password, 10);
-    await Admin.create({ username, passwordHash: hash });
-
-    return NextResponse.json({ success: true }, { status: 201 });
-  } catch (error) {
-    console.error('Error in admin registration:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  if (!username || !password || !accessCode) {
+    return NextResponse.json({ error: "All fields required" }, { status: 400 });
   }
+
+  if (accessCode !== process.env.ADMIN_ACCESS_CODE) {
+    return NextResponse.json({ error: "Invalid access code" }, { status: 403 });
+  }
+
+  const existing = await Admin.findOne({ username });
+  if (existing) {
+    return NextResponse.json({ error: "Admin already exists" }, { status: 409 });
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  await Admin.create({ username, passwordHash });
+
+  return NextResponse.json({ success: true });
 }
